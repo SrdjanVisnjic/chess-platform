@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: matchmaking-service
+  
+server:
+  port: 8084
