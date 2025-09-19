@@ -65,7 +65,8 @@ public class User {
     @Builder.Default
     private Boolean emailVerified = false;
 
-    @Column(name = "account_status", length = 30)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status", length = 20)
     @Builder.Default
     private AccountStatus accountStatus = AccountStatus.ACTIVE;
 

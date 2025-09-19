@@ -1,6 +1,11 @@
 spring:
   application:
     name: auth-service
+    security:
+      jwt:
+        secret: 7rIx2CnWZi9oO9Yqb/mk8NUX0mjFClQ3MHiOUzOTpV4=
+        access-token-expiration: 900000 # 15 minutes
+        refresh-token-expiration: 604800000 # 7 days
 
   
   datasource:
@@ -37,12 +42,6 @@ server:
   servlet:
     context-path: /api/auth
 
-application:
-  security:
-    jwt:
-      secret: ${JWT_SECRET:your-256-bit-secret-key-for-development-only-change-in-production}
-      access-token-expiration: 900000 # 15 minutes
-      refresh-token-expiration: 604800000 # 7 days
 
 
 logging:
