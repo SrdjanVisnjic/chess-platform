@@ -2,6 +2,7 @@ package com.chess.game.model;
 
 public class ChessBoard {
     private String [][] board = new String[8][8];
+    private boolean whiteTurn = true;
 
     public ChessBoard(){
         initializeBoard();
@@ -24,6 +25,34 @@ public class ChessBoard {
 
     }
 
+    public boolean makeMove(String from, String to){
+        Move move = new Move(from, to);
+
+        if (!isValidPosition(move.getFromRow(), move.getFromColumn()) ||
+                !isValidPosition(move.getToRow(), move.getToColumn())) {
+            return false;
+        }
+
+        String piece = board[move.getFromRow()][move.getFromColumn()];
+        if (piece.equals("--")) return false;
+        if((whiteTurn && piece.charAt(0) == 'B') || (!whiteTurn && piece.charAt(0) == 'W')) return false;
+
+        board[move.getToRow()][move.getToColumn()] = piece;
+        board[move.getFromRow()][move.getFromColumn()] = "--";
+
+        whiteTurn = !whiteTurn;
+        return true;
+    }
+
+
+    //Simple validation
+    private boolean isValidPosition(int row, int col){
+        return row >= 0 && row < 8 && col >=0 && col < 8;
+    }
+
+    public boolean isWhiteTurn(){
+        return whiteTurn;
+    }
     public String[][] getBoard() {
         return board;
     }
