@@ -1,11 +1,20 @@
 package com.chess.game.model;
 
+import com.chess.game.service.MoveValidator;
+
 public class ChessBoard {
     private String [][] board = new String[8][8];
     private boolean whiteTurn = true;
+    private MoveValidator moveValidator;
 
     public ChessBoard(){
         initializeBoard();
+        this.moveValidator = new MoveValidator();
+    }
+
+    public ChessBoard(MoveValidator moveValidator){
+        initializeBoard();
+        this.moveValidator = moveValidator;
     }
 
     private void initializeBoard(){
@@ -36,6 +45,7 @@ public class ChessBoard {
         String piece = board[move.getFromRow()][move.getFromColumn()];
         if (piece.equals("--")) return false;
         if((whiteTurn && piece.charAt(0) == 'B') || (!whiteTurn && piece.charAt(0) == 'W')) return false;
+        if(moveValidator != null && !moveValidator.isValidMove(board,move,whiteTurn)) return false;
 
         board[move.getToRow()][move.getToColumn()] = piece;
         board[move.getFromRow()][move.getFromColumn()] = "--";
