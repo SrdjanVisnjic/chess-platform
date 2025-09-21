@@ -36,17 +36,32 @@ public class GameController {
         String from = move.get("from");
         String to = move.get("to");
 
+        Game game = gameService.getGame(gameId);
+        if (game == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", "Game not found"
+            ));
+        }
+
+        // Don't allow moves if game is over
+        if (game.getChessBoard().isGameOver()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", "Game is over",
+                    "status", game.getChessBoard().getGameStatus()
+            ));
+        }
+
         boolean success = gameService.makeMove(gameId, from, to);
 
-        if(success){
-            Game game = gameService.getGame(gameId);
+        if (success) {
             return ResponseEntity.ok(Map.of(
-                    "success" , true,
-                    "board", game.getChessBoard().getBoard(),
+                    "success", true,
+                    "board", game.getChessBoard().getBoardUnicode(),
                     "nextTurn", game.getChessBoard().isWhiteTurn() ? "white" : "black",
                     "gameStatus", game.getChessBoard().getGameStatus(),
-                    "whiteInCheck", game.getChessBoard().isWhiteInCheck(),
-                    "blackInCheck", game.getChessBoard().isBlackInCheck()
+                    "gameOver", game.getChessBoard().isGameOver()
             ));
         } else {
             return ResponseEntity.badRequest().body(Map.of(

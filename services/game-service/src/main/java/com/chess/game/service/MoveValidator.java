@@ -169,7 +169,7 @@ public class MoveValidator {
                 testMove.setFromColumn(j);
                 testMove.setToRow(row);
                 testMove.setToColumn(col);
-                //Check if the piece can legaly attack
+                //Check if the piece can legally attack
                 if(canPieceAttack(board,testMove,piece)) return true;
             }
         }
@@ -228,8 +228,47 @@ public class MoveValidator {
         String piece = temp[move.getFromRow()][move.getFromColumn()];
         temp[move.getToRow()][move.getToColumn()] = piece;
         temp[move.getFromRow()][move.getFromColumn()] = "--";
-        boolean inCheck = isInCheck(temp, isWhite);
-        return  inCheck;
+        return  isInCheck(temp, isWhite);
+    }
+    //Brute force checkmate detection. We check if king is in check, try every possible move for that player, if none get the king out of check it's checkmate
+    //O(n4) yikes, at least it's limited to 4096. #TODO Check how engines optimize this
+    public boolean hasLegalMove(String[][] board, boolean isWhite){
+        //We try every piece of the current player
+        for(int i = 0; i < 8; i++){
+            for(int j = 0 ; j < 8 ; j++){
+                String piece = board[i][j];
+                //Skip if empty or wrong color
+                if(piece == null || piece.equals("--")) continue;
+                if((isWhite && piece.charAt(0) != 'W')||(!isWhite && piece.charAt(0) != 'B')) continue;
+                //Move it to every square
+                for(int k = 0; k < 8; k++){
+                    for(int l = 0; l < 8 ;l++){
+                        Move testMove = new Move();
+                        testMove.setFromRow(i);
+                        testMove.setFromColumn(j);
+                        testMove.setToRow(k);
+                        testMove.setToColumn(l);
+                        //Skip invalid moves
+                        if(!isValidMove(board,testMove,isWhite)) continue;
+                        //If the move gets us out of check, we've found at least one legal move
+                        if(!wouldLeaveInCheck(board,testMove,isWhite)){
+                            System.out.println("Legal move found: " +
+                                    i + "," + j + " to " + k + "," + l);
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+    //Check + no legal moves = checkmate
+    public boolean isCheckmate(String[][]board, boolean isWhite){
+        return isInCheck(board, isWhite) && !hasLegalMove(board, isWhite);
+    }
+    //Not check + no legal moves = stalemate
+    public boolean isStalemate(String[][]board, boolean isWhite){
+        return !isInCheck(board, isWhite) && !hasLegalMove(board, isWhite);
     }
 
     //Helper method to deep copy the matrix

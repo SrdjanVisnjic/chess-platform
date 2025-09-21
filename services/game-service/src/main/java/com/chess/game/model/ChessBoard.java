@@ -3,6 +3,9 @@ package com.chess.game.model;
 import com.chess.game.service.MoveValidator;
 import lombok.Getter;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class ChessBoard {
     @Getter
     private String [][] board = new String[8][8];
@@ -110,16 +113,71 @@ public class ChessBoard {
 
     public String getGameStatus() {
         if (whiteInCheck) {
-            // TODO: Check if white has any legal moves
-            // If not, it's checkmate
+            if (moveValidator != null && moveValidator.isCheckmate(board, true)) {
+                return "CHECKMATE! Black wins!";
+            }            // If not, it's checkmate
             return "White is in check!";
         }
         if (blackInCheck) {
-            // TODO: Check if black has any legal moves
-            // If not, it's checkmate
+            if (moveValidator != null && moveValidator.isCheckmate(board, false)) {
+                return "CHECKMATE! White wins!";
+            }            // If not, it's checkmate
             return "Black is in check!";
+        }
+        if (moveValidator != null) {
+            if (moveValidator.isStalemate(board, whiteTurn)) {
+                return "STALEMATE! Game is a draw.";
+            }
         }
         return "Normal";
     }
 
+    public boolean isGameOver() {
+        if (moveValidator == null) return false;
+
+        // Game ends on checkmate or stalemate
+        return moveValidator.isCheckmate(board, true) ||
+                moveValidator.isCheckmate(board, false) ||
+                moveValidator.isStalemate(board, whiteTurn);
+    }
+    //Found a nice Unicode print board method
+    public String getBoardUnicode() {
+        StringBuilder sb = new StringBuilder();
+
+        // Map pieces to Unicode symbols
+        Map<String, String> pieceSymbols = new HashMap<>();
+        pieceSymbols.put("WK", "♔");
+        pieceSymbols.put("WQ", "♕");
+        pieceSymbols.put("WR", "♖");
+        pieceSymbols.put("WB", "♗");
+        pieceSymbols.put("WN", "♘");
+        pieceSymbols.put("WP", "♙");
+        pieceSymbols.put("BK", "♚");
+        pieceSymbols.put("BQ", "♛");
+        pieceSymbols.put("BR", "♜");
+        pieceSymbols.put("BB", "♝");
+        pieceSymbols.put("BN", "♞");
+        pieceSymbols.put("BP", "♟");
+        pieceSymbols.put("--", "·");
+
+        sb.append("\n   a b c d e f g h\n");
+        sb.append("  ┌─────────────────┐\n");
+
+        for (int row = 7; row >= 0; row--) {
+            sb.append(row + 1).append(" │ ");
+
+            for (int col = 0; col < 8; col++) {
+                String piece = board[row][col];
+                String symbol = pieceSymbols.getOrDefault(piece, "?");
+                sb.append(symbol).append(" ");
+            }
+
+            sb.append("│ ").append(row + 1).append("\n");
+        }
+
+        sb.append("  └─────────────────┘\n");
+        sb.append("   a b c d e f g h\n");
+
+        return sb.toString();
+    }
 }
