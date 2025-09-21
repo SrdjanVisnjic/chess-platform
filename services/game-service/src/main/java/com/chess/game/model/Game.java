@@ -19,7 +19,6 @@ public class Game {
 
     public Game(String id){
         this.id = id;
-        this.chessBoard = new ChessBoard();
         this.moveHistory = new ArrayList<>();
         this.gameStatus = GameStatus.WAITING_FOR_PLAYER;
         this.createdAt = LocalDateTime.now();

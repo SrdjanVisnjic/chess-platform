@@ -126,5 +126,120 @@ public class MoveValidator {
         }
         return true;
     }
+    //After every move we need to check if the king is safe. For that we need to know where the king is
+    //Inefficient O(n2) search #TODO optimize later
+    public int[] findKing(String[][]board , boolean isWhite){
+        char kingColor = isWhite ? 'W' : 'B';
+        for(int i = 0; i < 8 ; i++){
+            for(int j = 0; j < 8 ; j++){
+                String piece = board[i][j];
+                if(piece == null) {
+                    System.out.println("Null found" + i + j);
+                    continue;
+                }
+                if(!piece.equals("--") &&
+                        piece.charAt(0) == kingColor &&
+                        piece.charAt(1) == 'K'){
+                    return new int[]{i,j};
+                }
+            }
+        }
+        return null;
+    }
 
+    //We check if the square is under attack if any piece can move to that square
+    private boolean isSquareUnderAttack(String [][] board, int row, int col, boolean isWhite){
+        if(board == null){
+            System.out.println("Board is NULL");
+            return false;
+        }
+
+        char attacker = isWhite ? 'W' : 'B';
+       //Check every square for potential attackers
+        for (int i = 0; i < 8 ; i++){
+            for(int j = 0; j < 8; j++){
+                String piece = board[i][j];
+                //Skip empty and friendly squares
+                if(piece.equals("--") || piece.charAt(0) != attacker){
+                    continue;
+                }
+                //Create a test move for the piece to see if it can move to our target square
+                Move testMove = new Move();
+                testMove.setFromRow(i);
+                testMove.setFromColumn(j);
+                testMove.setToRow(row);
+                testMove.setToColumn(col);
+                //Check if the piece can legaly attack
+                if(canPieceAttack(board,testMove,piece)) return true;
+            }
+        }
+        return false;
+    }
+    //Most pieces attack how they move, pawns are the exception
+    private boolean canPieceAttack(String[][] board, Move move, String piece){
+        PieceType pieceType = PieceType.fromSymbol(piece.charAt(1));
+
+        switch (pieceType){
+            case PAWN -> {
+                return  canPawnAttack(move, piece.charAt(0) == 'W');
+            }
+            case KNIGHT -> {
+                return isValidKnightMove(move);
+            }
+            case BISHOP -> {
+                return isValidBishopMove(board, move);
+            }
+            case ROOK -> {
+                return isValidRookMove(board, move);
+            }
+            case QUEEN ->
+            {
+                return isValidQueenMove(board, move);
+            }
+            case KING -> {
+                return isValidKingMove(move);
+            }
+            default -> {
+                return false;
+            }
+        }
+    }
+    //If a pawn is changing columns and going up/down the board, it is attacking a piece
+    private boolean canPawnAttack(Move move, boolean isWhite){
+        int rowDiff = move.getToRow() - move.getFromRow();
+        int colDiff = Math.abs(move.getToColumn() - move.getFromColumn());
+
+        int expectedDirection = isWhite? 1 : -1;
+        return rowDiff == expectedDirection && colDiff == 1;
+    }
+
+    public boolean isInCheck(String[][] board, boolean isWhite){
+        int[] kingPos = findKing(board,isWhite);
+        //Edge case if a king doesn't exist, will never get to this
+        if(kingPos == null) return false;
+        //If kings square is attacked by the opposite color, it's check
+        return isSquareUnderAttack(board,kingPos[0],kingPos[1], !isWhite);
+    }
+
+    //See if the move we make will leave us in check
+    public boolean wouldLeaveInCheck(String[][]board, Move move, boolean isWhite){
+        String[][] temp = copyBoard(board);
+        //Make the move and check if the new board state results in check
+        String piece = temp[move.getFromRow()][move.getFromColumn()];
+        temp[move.getToRow()][move.getToColumn()] = piece;
+        temp[move.getFromRow()][move.getFromColumn()] = "--";
+        boolean inCheck = isInCheck(temp, isWhite);
+        return  inCheck;
+    }
+
+    //Helper method to deep copy the matrix
+    private String [][] copyBoard(String[][] board){
+        String[][] copy = new String[8][8];
+        for(int i = 0; i < 8; i++){
+           for(int j = 0; j < 8 ; j++){
+               copy[i][j] = board[i][j];
+           }
+        }
+        return copy;
+    }
 }

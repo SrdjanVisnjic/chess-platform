@@ -30,7 +30,9 @@ public class GameController {
     }
 
     @PostMapping("/move/{gameId}")
-    public ResponseEntity<Map<String,Object>> makeMove(@PathVariable String gameId, @RequestBody Map<String,String> move){
+    public ResponseEntity<Map<String,Object>> makeMove(
+            @PathVariable String gameId,
+            @RequestBody Map<String,String> move){
         String from = move.get("from");
         String to = move.get("to");
 
@@ -41,7 +43,10 @@ public class GameController {
             return ResponseEntity.ok(Map.of(
                     "success" , true,
                     "board", game.getChessBoard().getBoard(),
-                    "nextTurn", game.getChessBoard().isWhiteTurn() ? "white" : "black"
+                    "nextTurn", game.getChessBoard().isWhiteTurn() ? "white" : "black",
+                    "gameStatus", game.getChessBoard().getGameStatus(),
+                    "whiteInCheck", game.getChessBoard().isWhiteInCheck(),
+                    "blackInCheck", game.getChessBoard().isBlackInCheck()
             ));
         } else {
             return ResponseEntity.badRequest().body(Map.of(
