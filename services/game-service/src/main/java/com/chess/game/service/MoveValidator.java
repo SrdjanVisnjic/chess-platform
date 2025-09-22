@@ -104,8 +104,16 @@ public class MoveValidator {
         int rowDiff = Math.abs(move.getToRow() - move.getFromRow());
         int colDiff = Math.abs(move.getToColumn() - move.getFromColumn());
 
-        // King moves one square in any direction
-        return rowDiff <= 1 && colDiff <= 1;
+        //Normal king move
+        if(rowDiff <= 1 && colDiff <= 1){
+            return true;
+        }
+        //Check for castling -> moves 2 squares horizontally
+        if(rowDiff == 0 && colDiff == 2){
+            return true;
+        }
+
+        return false;
     }
 
 
@@ -269,6 +277,56 @@ public class MoveValidator {
     //Not check + no legal moves = stalemate
     public boolean isStalemate(String[][]board, boolean isWhite){
         return !isInCheck(board, isWhite) && !hasLegalMove(board, isWhite);
+    }
+    //Castling validation
+    //King can castle if:
+    // 1. King hasn't made a move yet
+    // 2. The castling rook hasn't made a move yet
+    // 3. The king is not in check
+    // 4. Path between rook and king is clear
+    // 5. Any of the squares on the patch are not under attack
+    public boolean isValidCastling(String[][]board, Move move, boolean isWhite,
+                                    boolean kingMoved, boolean kRookMoved, boolean qRookMoved){
+        //Check if king moved
+        if(kingMoved) return false;
+        //Must be moving 2 squares horizontally
+        if(move.getFromRow() != move.getToRow() || Math.abs(move.getFromColumn() - move.getToColumn()) != 2){
+            return false;
+        }
+        //Kind is on e1, if castling king side he goes e1 -> h1 so then h>e;
+        boolean isKingSide = move.getToColumn() > move.getFromColumn();
+        //Check if the respective rooks moved
+        if(isKingSide && kRookMoved) return false;
+        if(!isKingSide && qRookMoved) return false;
+        //Check if in check
+        if(isInCheck(board, isWhite)) return false;
+
+        int row = isWhite? 0: 7;
+        if(isKingSide){
+            //Check if f and g files are clear
+            if(!board[row][5].equals("--") || !board[row][6].equals("--")){
+                return false;
+            }
+            // Check if f and g files are not under attack
+            if(isSquareUnderAttack(board, row, 5, !isWhite) ||
+                isSquareUnderAttack(board, row, 6, !isWhite)){
+                return false;
+            }
+        } else {
+            //Queen side castling has one more square to check
+            if(!board[row][1].equals("--")||
+                    !board[row][2].equals("--")||
+                    !board[row][3].equals("--")){
+                return false;
+            }
+            //b file is not important for castling
+            if(isSquareUnderAttack(board, row, 2, !isWhite) ||
+                    isSquareUnderAttack(board, row, 3, !isWhite)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     //Helper method to deep copy the matrix

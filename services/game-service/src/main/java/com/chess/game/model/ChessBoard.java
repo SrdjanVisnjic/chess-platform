@@ -17,6 +17,14 @@ public class ChessBoard {
     @Getter
     private boolean blackInCheck = false;
 
+    //Need this for castling
+    private boolean whiteKingMoved = false;
+    private boolean blackKingMoved = false;
+    private boolean whiteKRookMoved = false;
+    private boolean whiteQRookMoved = false;
+    private boolean blackKRookMoved = false;
+    private boolean blackQRookMoved = false;
+
     public ChessBoard(){
         initializeBoard();
         //this.moveValidator = new MoveValidator();
@@ -57,6 +65,19 @@ public class ChessBoard {
         }
 
         String piece = board[move.getFromRow()][move.getFromColumn()];
+        //Check to see if the move in question is castling
+        boolean isCastling = false;
+        if(piece.charAt(1) == 'K' && Math.abs(move.getToColumn()-move.getFromColumn()) == 2){
+            //Tracking state of movement for the validator
+            isCastling = true;
+            boolean kingMoved = whiteTurn? whiteKingMoved : blackKingMoved;
+            boolean kingSideRookMoved = whiteTurn ? whiteKRookMoved : blackKRookMoved;
+            boolean queenSideRookMoved = whiteTurn ? whiteQRookMoved: blackQRookMoved;
+
+            if(!moveValidator.isValidCastling(board, move, whiteTurn, kingMoved, kingSideRookMoved, queenSideRookMoved)){
+                return false;
+            }
+        }
         // Validation 2: Ensure there's a piece to move
         if (piece.equals("--")) {
             return false;
@@ -78,6 +99,21 @@ public class ChessBoard {
         }
         board[move.getToRow()][move.getToColumn()] = piece;
         board[move.getFromRow()][move.getFromColumn()] = "--";
+        //Moving the rook and clearing the files
+        //Since castling is initiated by moving the king, his position will update with his move
+        if(isCastling){
+            int row = move.getFromRow();
+            boolean isKingSide = move.getToColumn() > move.getFromColumn();
+            if(isKingSide){
+                board[row][5] = board[row][7];
+                board[row][7] = "--";
+            } else {
+                board[row][3] = board[row][0];
+                board[row][0] = "--";
+            }
+        }
+
+        updateCastlingRights(move, piece);
 
         whiteTurn = !whiteTurn;
         //Update check status to see if the made move resulted in a check
@@ -87,7 +123,31 @@ public class ChessBoard {
         }
         return true;
     }
-
+    private void updateCastlingRights(Move move, String piece){
+        //King moved
+        if(piece.charAt(1) == 'K'){
+            if(piece.charAt(0) == 'W') whiteKingMoved = true;
+            else blackKingMoved = true;
+        }
+        //Rook moved
+        if(piece.charAt(1) == 'R'){
+            if(piece.charAt(0) == 'W'){
+                if(move.getFromRow() == 0 && move.getFromColumn() == 0){
+                    whiteQRookMoved = true;
+                }
+                if(move.getFromRow() == 0 && move.getFromColumn() == 7){
+                    whiteKRookMoved = true;
+                }
+            } else {
+                if(move.getFromRow() == 7 && move.getFromColumn() == 0){
+                    blackQRookMoved = true;
+                }
+                if(move.getFromRow() == 7 && move.getFromColumn() == 7){
+                    blackKRookMoved = true;
+                }
+            }
+        }
+    }
 
     //Simple validation
     private boolean isValidPosition(int row, int col){
