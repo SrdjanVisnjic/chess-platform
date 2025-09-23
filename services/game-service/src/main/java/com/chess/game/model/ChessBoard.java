@@ -21,18 +21,25 @@ public class ChessBoard {
 
     //En passant tracking
     private int enPassantColum = 1;
-    private boolean enPassantForWhite = false;
 
     //Need this for castling
+    @Getter
     private boolean whiteKingMoved = false;
+    @Getter
     private boolean blackKingMoved = false;
+    @Getter
     private boolean whiteKRookMoved = false;
+    @Getter
     private boolean whiteQRookMoved = false;
+    @Getter
     private boolean blackKRookMoved = false;
+    @Getter
     private boolean blackQRookMoved = false;
 
     //For draws
+    @Getter
     private int halfMoveCount = 0; //If no pawn capture in 50 moves it's a draw
+    @Getter
     private List<String> positionHistory = new ArrayList<>(); //For threefold repetition
     private Map<String, Integer> positionCounts = new HashMap<>();// Keeps count of position occurrences
     //There is also insufficient material to check mate -> draw
