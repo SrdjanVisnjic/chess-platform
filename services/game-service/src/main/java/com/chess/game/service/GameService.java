@@ -24,12 +24,23 @@ public class GameService {
         return gameId;
     }
 
-    public boolean makeMove(String gameId, String from, String to){
+    public boolean makeMove(String gameId, String from, String to , String promoteTo){
         Game game = games.get(gameId);
-        if(game == null) return false;
-        boolean moveSuccess = game.getChessBoard().makeMove(from, to);
-        if(moveSuccess) game.getMoveHistory().add(from + "-" + to);
+        if(game == null)
+            return false;
+        boolean moveSuccess = game.getChessBoard().makeMove(from, to, promoteTo);
+        if(moveSuccess) {
+            String moveNotation = from + "-" + to;
+            if(promoteTo != null){
+                moveNotation +="="+promoteTo;
+            }
+            game.getMoveHistory().add(moveNotation);
+        }
         return moveSuccess;
+    }
+    //Overload for previous attempt
+    public boolean makeMove(String gameId, String from, String to){
+        return makeMove(gameId, from, to,null);
     }
 
     public Game getGame(String gameId){

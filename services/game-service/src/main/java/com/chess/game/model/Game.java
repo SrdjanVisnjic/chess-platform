@@ -2,6 +2,8 @@ package com.chess.game.model;
 
 import com.chess.game.enums.GameStatus;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

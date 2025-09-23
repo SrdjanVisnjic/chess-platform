@@ -1,5 +1,6 @@
 package com.chess.game.controller;
 
+import com.chess.game.enums.GameStatus;
 import com.chess.game.model.Game;
 import com.chess.game.service.GameService;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class GameController {
             @RequestBody Map<String,String> move){
         String from = move.get("from");
         String to = move.get("to");
+        String promoteTo = move.get("promoteTo");
 
         Game game = gameService.getGame(gameId);
         if (game == null) {
@@ -53,7 +55,7 @@ public class GameController {
             ));
         }
 
-        boolean success = gameService.makeMove(gameId, from, to);
+        boolean success = gameService.makeMove(gameId, from, to, promoteTo);
 
         if (success) {
             return ResponseEntity.ok(Map.of(
@@ -69,6 +71,27 @@ public class GameController {
                     "error", "Invalid move"
             ));
         }
+    }
+
+    @PostMapping("/draw/{gameId}")
+    public ResponseEntity<Map<String,Object>> offerDraw(@PathVariable String gameId){
+        Game game = gameService.getGame(gameId);
+        if (game == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", "Game not found"
+            ));
+        }
+
+        // For simplicity, auto-accept draw offers
+        // In real game, you'd track who offered and wait for acceptance
+        game.setGameStatus(GameStatus.DRAW);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Game ended in draw by mutual agreement",
+                "board", game.getChessBoard().getBoardUnicode()
+        ));
     }
 
     @GetMapping("/test")

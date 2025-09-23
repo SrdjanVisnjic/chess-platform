@@ -3,7 +3,9 @@ package com.chess.game.model;
 import com.chess.game.service.MoveValidator;
 import lombok.Getter;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ChessBoard {
@@ -17,6 +19,10 @@ public class ChessBoard {
     @Getter
     private boolean blackInCheck = false;
 
+    //En passant tracking
+    private int enPassantColum = 1;
+    private boolean enPassantForWhite = false;
+
     //Need this for castling
     private boolean whiteKingMoved = false;
     private boolean blackKingMoved = false;
@@ -24,6 +30,14 @@ public class ChessBoard {
     private boolean whiteQRookMoved = false;
     private boolean blackKRookMoved = false;
     private boolean blackQRookMoved = false;
+
+    //For draws
+    private int halfMoveCount = 0; //If no pawn capture in 50 moves it's a draw
+    private List<String> positionHistory = new ArrayList<>(); //For threefold repetition
+    private Map<String, Integer> positionCounts = new HashMap<>();// Keeps count of position occurrences
+    //There is also insufficient material to check mate -> draw
+    //Stalemate is a draw
+    //Players can draw by agreement but that will be handled in the service/controller
 
     public ChessBoard(){
         initializeBoard();
@@ -56,7 +70,7 @@ public class ChessBoard {
 
     }
 
-    public boolean makeMove(String from, String to){
+    public boolean makeMove(String from, String to, String promoteTo){
         Move move = new Move(from, to);
         // Validation 1: Ensure positions are within board bounds
         if (!isValidPosition(move.getFromRow(), move.getFromColumn()) ||
@@ -65,6 +79,44 @@ public class ChessBoard {
         }
 
         String piece = board[move.getFromRow()][move.getFromColumn()];
+        String capturedPiece = board[move.getToRow()][move.getToColumn()];
+
+        int previousEnPassantColumn = enPassantColum;
+        enPassantColum = -1;
+
+        //This will check if the made move creates an en passant possibility
+        //If you move up/down 2 squares with a pawn and have an enemy pawn to either side, it can captured by en passant
+        if (piece.charAt(1) == 'P') {
+            int rowDiff = move.getToRow() - move.getFromRow();
+            if(Math.abs(rowDiff) == 2){
+                if(piece.charAt(0) == 'W' && move.getFromRow() ==1 & move.getToRow() ==3){
+                    if(hasEnemyPawnAdjacent(3,move.getToColumn(), false)){
+                        enPassantColum = move.getToColumn();
+                    }
+                }
+                else if(piece.charAt(0) == 'B' && move.getFromRow() == 6 && move.getToRow() == 4){
+                    if(hasEnemyPawnAdjacent(4, move.getToColumn(), true)){
+                        enPassantColum = move.getToColumn();
+                    }
+                }
+            }
+        }
+        //Verify if the move is an enpassant capture
+        boolean isEnPassantCapture = false;
+        if(piece.charAt(1) == 'P' && previousEnPassantColumn >=0 ){
+            //Diagonal move
+            //Empty square
+            //In the enPassant column
+            if(Math.abs(move.getToColumn() - move.getFromColumn()) == 1 && move.getToColumn() == previousEnPassantColumn && capturedPiece.equals("--")){
+                boolean validRank = (piece.charAt(0) == 'W' && move.getFromRow() == 4) ||
+                        (piece.charAt(0) == 'B' && move.getFromRow() == 3);
+                if(validRank){
+                    isEnPassantCapture = true;
+                    capturedPiece = "P"; // To mitigate the 50 move rule
+                }
+            }
+        }
+
         //Check to see if the move in question is castling
         boolean isCastling = false;
         if(piece.charAt(1) == 'K' && Math.abs(move.getToColumn()-move.getFromColumn()) == 2){
@@ -97,8 +149,37 @@ public class ChessBoard {
                 return false;
             }
         }
+        // Track position before move for repetition
+        String positionBefore = getBoardPosition();
+
+        // Update 50-move rule counter
+        if (piece.charAt(1) == 'P' || !capturedPiece.equals("--")) {
+            halfMoveCount = 0;  // Reset on pawn move or capture
+        } else {
+            halfMoveCount++;
+        }
         board[move.getToRow()][move.getToColumn()] = piece;
         board[move.getFromRow()][move.getFromColumn()] = "--";
+
+        //Like with castling, pawn moved, but we need to update another square
+        if(isEnPassantCapture){
+            int capturePawnRow = piece.charAt(0) == 'W' ? 4 : 3;
+            board[capturePawnRow][move.getToColumn()] = "--";
+        }
+
+        String positionAfter = getBoardPosition();
+        positionHistory.add(positionAfter);
+        positionCounts.put(positionAfter, positionCounts.getOrDefault(positionAfter, 0) + 1);
+
+        //After the move is made check if it was made by a pawn and is it in the final row
+        //If yes -> can promote
+        if(piece.charAt(1) == 'P'){
+            if((piece.charAt(0) == 'W' && move.getToRow() == 7) || (piece.charAt(0) == 'B' && move.getToRow() == 0)){
+                //Null check and validity check -> default queen
+                String newPiece = promoteTo != null && isValidPromotionPiece(promoteTo)? promoteTo : "Q";
+                board[move.getToRow()][move.getToColumn()] = piece.charAt(0) + newPiece;
+            }
+        }
         //Moving the rook and clearing the files
         //Since castling is initiated by moving the king, his position will update with his move
         if(isCastling){
@@ -148,6 +229,95 @@ public class ChessBoard {
             }
         }
     }
+    //Overload it for moves without promotion
+    public boolean makeMove(String from, String to) {
+        return makeMove(from, to, null);
+    }
+
+    private boolean isValidPromotionPiece(String piece) {
+        return piece.equals("Q") || piece.equals("R") ||
+                piece.equals("B") || piece.equals("N");
+    }
+    //50 moves without pawn move or capture
+    public boolean isFiftyMoveRule() {
+        return halfMoveCount >= 100;  // 50 full moves = 100 half-moves
+    }
+
+    //Threefold repetition: Same position occurred 3 times
+    public boolean isThreefoldRepetition() {
+        for (Integer count : positionCounts.values()) {
+            if (count >= 3) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    //Insufficient material check
+    //Only kings -> insufficient
+    //King + a bishop or knight vs king -> insufficient
+    //Kings + opposite color bishops -> insufficient
+
+    public boolean isInsufficientMaterial(){
+        List<String> whitePieces = new ArrayList<>();
+        List<String> blackPieces = new ArrayList<>();
+
+        // Collect all pieces
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                String piece = board[row][col];
+                if (!piece.equals("--")) {
+                    if (piece.charAt(0) == 'W') {
+                        whitePieces.add(piece);
+                    } else {
+                        blackPieces.add(piece);
+                    }
+                }
+            }
+        }
+        //Only kings
+        if(whitePieces.size() == 1 && blackPieces.size() == 1){
+            return true;
+        }
+
+        // King + B/N vs solo king
+        if((whitePieces.size() == 2 && blackPieces.size() == 1) || (whitePieces.size() == 1 && blackPieces.size() == 2)){
+            List<String> twoPiece = whitePieces.size() ==2 ? whitePieces : blackPieces;
+            for(String piece : twoPiece){
+                if(piece.charAt(1) == 'B' || piece.charAt(1) == 'N'){
+                    return true;
+                }
+            }
+        }
+        // Check if those two pieces are opposite bishops
+        if(whitePieces.size() == 2 && blackPieces.size() == 2){
+            boolean whiteBishop = whitePieces.stream().anyMatch(( p-> p.equals("WB")));
+            boolean blackBishop = blackPieces.stream().anyMatch(p -> p.equals("BB"));
+            if(whiteBishop && blackBishop){
+                return true;
+            }
+        }
+
+        return false;
+    }
+    // Check if there is an adjacent enemy pawn to the given position
+    private boolean hasEnemyPawnAdjacent(int row, int col, boolean checkingForWhite) {
+        String enemyPawn = checkingForWhite ? "WP" : "BP";
+
+        // Check left
+        if (col > 0 && board[row][col - 1].equals(enemyPawn)) {
+            return true;
+        }
+        // Check right
+        if (col < 7 && board[row][col + 1].equals(enemyPawn)) {
+            return true;
+        }
+        return false;
+    }
+
+    public int getEnPassantColum(){
+        return enPassantColum;
+    }
 
     //Simple validation
     private boolean isValidPosition(int row, int col){
@@ -184,12 +354,28 @@ public class ChessBoard {
             }            // If not, it's checkmate
             return "Black is in check!";
         }
-        if (moveValidator != null) {
-            if (moveValidator.isStalemate(board, whiteTurn)) {
-                return "STALEMATE! Game is a draw.";
-            }
+        if (isStalemate()) {
+            return "DRAW by stalemate!";
+        }
+        if (isFiftyMoveRule()) {
+            return "DRAW by 50-move rule!";
+        }
+        if (isThreefoldRepetition()) {
+            return "DRAW by threefold repetition!";
+        }
+        if (isInsufficientMaterial()) {
+            return "DRAW by insufficient material!";
         }
         return "Normal";
+    }
+
+    public boolean isDraw(){
+        return  isStalemate() || isInsufficientMaterial()  || isFiftyMoveRule() || isThreefoldRepetition();
+    }
+    //Added this to make it nicer to look at
+    public boolean isStalemate(){
+        if(moveValidator == null) return false;
+        return moveValidator.isStalemate(board, whiteTurn);
     }
 
     public boolean isGameOver() {
@@ -198,7 +384,7 @@ public class ChessBoard {
         // Game ends on checkmate or stalemate
         return moveValidator.isCheckmate(board, true) ||
                 moveValidator.isCheckmate(board, false) ||
-                moveValidator.isStalemate(board, whiteTurn);
+                isDraw();
     }
     //Found a nice Unicode print board method
     public String getBoardUnicode() {
@@ -237,6 +423,28 @@ public class ChessBoard {
 
         sb.append("  └─────────────────┘\n");
         sb.append("   a b c d e f g h\n");
+
+        return sb.toString();
+    }
+    //Helper method to get a string representing current position for repetition checking
+    private String getBoardPosition() {
+        StringBuilder sb = new StringBuilder();
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                sb.append(board[row][col]).append(",");
+            }
+        }
+        sb.append(whiteTurn ? "W" : "B");  // Include whose turn it is
+
+        // Castling rights
+        sb.append(whiteKingMoved ? "0" : "1");
+        sb.append(whiteKRookMoved? "0" : "1");
+        sb.append(whiteQRookMoved ? "0" : "1");
+        sb.append(blackKingMoved ? "0" : "1");
+        sb.append(blackKRookMoved ? "0" : "1");
+        sb.append(blackQRookMoved ? "0" : "1").append(",");
+
+        // En passant possibility
 
         return sb.toString();
     }

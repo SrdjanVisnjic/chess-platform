@@ -6,7 +6,7 @@ import com.chess.game.model.Move;
 
 @Component
 public class MoveValidator {
-
+    public String enPassantColumn;
     public boolean isValidMove(String[][]board, Move move , boolean whiteTurn){
         String piece = board[move.getFromRow()][move.getFromColumn()];
         String target = board[move.getToRow()][move.getToColumn()];
@@ -72,7 +72,9 @@ public class MoveValidator {
         }
         //This is for taking pieces. Can move diagonally by 1 if it is not an empty square
         if(collDiff == 1 && rowDiff ==direction){
-            return !target.equals("--");
+            if(!target.equals("--")) return true;
+            //enPassant capture, ChessBoard will check, here we just allow diagonal moves to empty squares
+            return true;
         }
         return false;
     }
