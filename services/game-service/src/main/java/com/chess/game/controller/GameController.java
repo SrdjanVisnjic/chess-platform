@@ -3,15 +3,20 @@ package com.chess.game.controller;
 import com.chess.game.enums.GameStatus;
 import com.chess.game.model.Game;
 import com.chess.game.service.GameService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("")
 @RequiredArgsConstructor
+@Slf4j
 public class GameController {
 
     private final GameService gameService;
@@ -19,12 +24,18 @@ public class GameController {
     @PostMapping("/create")
     public ResponseEntity<Map<String,String>> createGame(@RequestBody Map<String,String> request){
         String username = request.getOrDefault("username", "anonymous");
-        String gameId = gameService.createNewGame(username);
-        return ResponseEntity.ok(Map.of("gameId", gameId, "message", "Game created"));
+        UUID gameId = gameService.createNewGame(username);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("gameId", gameId.toString());
+        response.put("message", "Game created");
+
+        log.info("Controller returning response: {}", response);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/game/{gameId}")
-    public ResponseEntity<Game> getBoard(@PathVariable String gameId){
+    public ResponseEntity<Game> getBoard(@PathVariable UUID gameId){
         Game game = gameService.getGame(gameId);
         if(game == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(game);
@@ -32,11 +43,17 @@ public class GameController {
 
     @PostMapping("/move/{gameId}")
     public ResponseEntity<Map<String,Object>> makeMove(
-            @PathVariable String gameId,
-            @RequestBody Map<String,String> move){
+            @PathVariable UUID gameId,
+            @RequestBody Map<String,String> move) {
+        log.info("Controller received move request for game {}: {}", gameId, move);
         String from = move.get("from");
         String to = move.get("to");
         String promoteTo = move.get("promoteTo");
+
+        if (from == null || to == null) {
+            log.error("Missing from/to in request: {}", move);
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing from or to"));
+        }
 
         Game game = gameService.getGame(gameId);
         if (game == null) {
@@ -58,6 +75,7 @@ public class GameController {
         boolean success = gameService.makeMove(gameId, from, to, promoteTo);
 
         if (success) {
+            //Game game = gameService.getGame(gameId);
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "board", game.getChessBoard().getBoardUnicode(),
@@ -74,7 +92,7 @@ public class GameController {
     }
 
     @PostMapping("/draw/{gameId}")
-    public ResponseEntity<Map<String,Object>> offerDraw(@PathVariable String gameId){
+    public ResponseEntity<Map<String,Object>> offerDraw(@PathVariable UUID gameId){
         Game game = gameService.getGame(gameId);
         if (game == null) {
             return ResponseEntity.badRequest().body(Map.of(

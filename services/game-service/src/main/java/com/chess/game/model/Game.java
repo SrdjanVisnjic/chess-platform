@@ -8,10 +8,11 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 public class Game {
-    private String id;
+    private UUID id;
     private String whitePlayer;
     private String blackPlayer;
     private ChessBoard chessBoard;
@@ -19,7 +20,7 @@ public class Game {
     private GameStatus gameStatus;
     private LocalDateTime createdAt;
 
-    public Game(String id){
+    public Game(UUID id){
         this.id = id;
         this.moveHistory = new ArrayList<>();
         this.gameStatus = GameStatus.WAITING_FOR_PLAYER;

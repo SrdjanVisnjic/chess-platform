@@ -13,9 +13,18 @@ spring:
      properties:
        hibernate:
          dialect: org.hibernate.dialect.PostgreSQLDialect
+         format_sql: true
+         order_updates: true
+         order_inserts: true
      show-sql: true
   
 server:
   port: 8082
   servlet:
     context-path: /api/game
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    com.chess.game.service: DEBUG

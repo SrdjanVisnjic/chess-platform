@@ -20,7 +20,7 @@ import java.util.UUID;
 public class GameEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    //@GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(name = "white_player_id")
@@ -45,7 +45,7 @@ public class GameEntity {
     private boolean whiteTurn = true;
 
     @Column(name = "game_status")
-    private String gameStatus = "IN_PROGRESS";
+    private String status = "IN_PROGRESS";
 
     @Column(name = "winner")
     private String winner;

@@ -2,44 +2,61 @@ package com.chess.game.model;
 
 import com.chess.game.service.MoveValidator;
 import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 public class ChessBoard {
     @Getter
+    @Setter
     private String [][] board = new String[8][8];
     @Getter
+    @Setter
     private boolean whiteTurn = true;
     private MoveValidator moveValidator;
     @Getter
+    @Setter
     private boolean whiteInCheck = false;
     @Getter
+    @Setter
     private boolean blackInCheck = false;
 
     //En passant tracking
+    @Getter
+    @Setter
     private int enPassantColum = 1;
 
     //Need this for castling
     @Getter
+    @Setter
     private boolean whiteKingMoved = false;
     @Getter
+    @Setter
     private boolean blackKingMoved = false;
     @Getter
+    @Setter
     private boolean whiteKRookMoved = false;
     @Getter
+    @Setter
     private boolean whiteQRookMoved = false;
     @Getter
+    @Setter
     private boolean blackKRookMoved = false;
     @Getter
+    @Setter
     private boolean blackQRookMoved = false;
 
     //For draws
     @Getter
+    @Setter
     private int halfMoveCount = 0; //If no pawn capture in 50 moves it's a draw
     @Getter
+    @Setter
     private List<String> positionHistory = new ArrayList<>(); //For threefold repetition
     private Map<String, Integer> positionCounts = new HashMap<>();// Keeps count of position occurrences
     //There is also insufficient material to check mate -> draw
@@ -49,13 +66,11 @@ public class ChessBoard {
     public ChessBoard(){
         initializeBoard();
         //this.moveValidator = new MoveValidator();
-        printBoard();
     }
 
     public ChessBoard(MoveValidator moveValidator){
         initializeBoard();
         this.moveValidator = moveValidator;
-        printBoard();
     }
     //Redoing this for null safety. Init all squares as empty first then add pieces
     private void initializeBoard(){
@@ -79,6 +94,7 @@ public class ChessBoard {
 
     public boolean makeMove(String from, String to, String promoteTo){
         Move move = new Move(from, to);
+        log.debug("ChessBoard.makeMove called: {} to {}", from, to);
         // Validation 1: Ensure positions are within board bounds
         if (!isValidPosition(move.getFromRow(), move.getFromColumn()) ||
                 !isValidPosition(move.getToRow(), move.getToColumn())) {
@@ -331,22 +347,6 @@ public class ChessBoard {
         return row >= 0 && row < 8 && col >=0 && col < 8;
     }
 
-    public void printBoard() {
-        System.out.println("=== BOARD DEBUG ===");
-        for (int i = 7; i >= 0; i--) {  // Start from top (row 7)
-            System.out.print((i + 1) + " ");
-            for (int j = 0; j < 8; j++) {
-                String piece = board[i][j];
-                if (piece == null) {
-                    System.out.print("NULL ");  // Show nulls clearly
-                } else {
-                    System.out.print(piece + "  ");
-                }
-            }
-            System.out.println();
-        }
-        System.out.println("  a  b  c  d  e  f  g  h");
-    }
 
     public String getGameStatus() {
         if (whiteInCheck) {
